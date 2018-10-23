@@ -36,11 +36,14 @@ void loop(){
   
   if(!(cm >= min_cm && cm <= max_cm)) open_led();
     
-  delay(1000);
+  delay(3000);
 }
 
 void read_min_max_values(){
+  Serial.println ("Enter the MIN distance value (cm)");
   min_cm = read_serial_integer();
+  
+  Serial.println ("Enter the MAX distance value (cm)");
   max_cm = read_serial_integer();
 
   if (max_cm <= min_cm) max_cm = min_cm + 2;
@@ -49,25 +52,14 @@ void read_min_max_values(){
 int read_serial_integer(){
   boolean int_not_finished = true;
   int number = 0;
-
   while(int_not_finished){
     if (Serial.available()){
-      char car = Serial.read();
-      switch (car)
-      {
-        case '\n': { 
-          // Endchar. User finished the number.
-          if(number > 0) int_not_finished = false;
-        }
-        default: {
-          // User is writing a number. 
-          // Move to the right the current number and append the new one.
-          if ((car >= '0') && (car <= '9')) {
-            number = number * 10 + car - '0';
-          }
-        }
+      String car = Serial.readString();
+      number = car.toInt();
+      if(number > 0) {
+        int_not_finished = false;
       }
-    }
+    } 
   }
 
   return number;
@@ -94,7 +86,7 @@ void read_sensor_distance(){
 }
 
 void send_distance(){
-  Serial.print(cm);
+  Serial.println(cm);
 }
 
 void open_led(){  
