@@ -132,4 +132,3 @@ void open_led(){
   // Turn on led
   digitalWrite(LED_BUILTIN, HIGH);
 }
-

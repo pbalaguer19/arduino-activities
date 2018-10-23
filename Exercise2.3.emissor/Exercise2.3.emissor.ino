@@ -11,6 +11,13 @@
 #define gainY     254.5
 #define gainZ     248.5
 
+/*
+* Group Number 4:
+* Group Members: Pau Balaguer, Didac Florensa and Hongzhi Zhu
+* Exercise 2.3.emissor
+*/
+
+
 byte buff[TO_READ] ;    //6 bytes buffer for saving data read from the device
 char str[512];                      //string buffer to transform data before sending it to the serial port
 
@@ -41,7 +48,6 @@ void loop()
   //we send the x y z values as a string to the serial port
   sprintf(str, "%d %d %d", x, y, z);  
   Serial.print(str);
-  Serial.print(10, byte());
   
   //It appears that delay is needed in order not to clog the port
   delay(2000);
