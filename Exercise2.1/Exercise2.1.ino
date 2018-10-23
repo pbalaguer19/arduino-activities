@@ -32,6 +32,7 @@ void setup(){
   
   lcd.init();
   lcd.home ();
+  lcd.clear();
   
   delay(500);
 
@@ -68,27 +69,18 @@ void read_min_max_values(){
 int read_serial_integer(){
   boolean int_not_finished = true;
   int number = 0;
-
   while(int_not_finished){
     if (Serial.available()){
-      char car = Serial.read();
-      switch (car)
-      {
-        case '\n': { 
-          // Endchar. User finished the number.
-          if(number > 0) int_not_finished = false;
-        }
-        default: {
-          // User is writing a number. 
-          // Move to the right the current number and append the new one.
-          if ((car >= '0') && (car <= '9')) {
-            number = number * 10 + car - '0';
-          }
-        }
+      String car = Serial.readString();
+      number = car.toInt();
+      if(number > 0) {
+        int_not_finished = false;
+      }
+      else {
+        Serial.println("The number has to be higher than 0");
       }
     }
   }
-
   return number;
 }
 
@@ -107,9 +99,11 @@ void read_sensor_distance(){
   // of the ping to the reception of its echo off of an object.
   pinMode(echoPin, INPUT);
   duration = pulseIn(echoPin, HIGH);
- 
+
+ delay(2);
   // Convert the time into a distance
   cm = (duration/2) / 29.1;     // Divide by 29.1 or multiply by 0.0343
+  Serial.println("Distance: " + String(cm));
 }
 
 void print_lcd_distance(){
@@ -138,3 +132,4 @@ void open_led(){
   // Turn on led
   digitalWrite(LED_BUILTIN, HIGH);
 }
+
