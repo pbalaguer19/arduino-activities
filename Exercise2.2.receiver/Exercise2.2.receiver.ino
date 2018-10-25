@@ -21,8 +21,6 @@ void setup(){
   lcd.init();
   lcd.home ();
   
-  delay(500);
-
   read_min_max_values();
 }
 
@@ -36,11 +34,15 @@ void loop(){
 }
 
 void read_min_max_values(){
+  Serial.println ("Enter the MIN distance value (cm)");
   min_cm = read_serial_integer();
+  Serial.println ("Enter the MAX distance value (cm)");
   max_cm = read_serial_integer();
 
   if (max_cm <= min_cm) max_cm = min_cm + 2;
   proportion = (max_cm - min_cm) / LCD_LEN;
+
+  delay(5000);
 
   // Send it to Emissor Arduino
   Serial.print(String(min_cm) + "\n");
