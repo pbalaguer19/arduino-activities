@@ -36,7 +36,7 @@ void loop(){
   
   if(!(cm >= min_cm && cm <= max_cm)) open_led();
     
-  delay(3000);
+  delay(1000);
 }
 
 void read_min_max_values(){
@@ -47,6 +47,7 @@ void read_min_max_values(){
   max_cm = read_serial_integer();
 
   if (max_cm <= min_cm) max_cm = min_cm + 2;
+  Serial.println(String(min_cm));
 }
 
 int read_serial_integer(){
