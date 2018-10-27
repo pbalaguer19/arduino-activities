@@ -28,25 +28,24 @@ void loop(){
   read_sensor_distance();
   
   if( cm >= min_cm && cm <= max_cm) print_lcd_distance();
+  else lcd.clear();
   
   delay(1000);
   
 }
 
 void read_min_max_values(){
-  Serial.println ("Enter the MIN distance value (cm)");
   min_cm = read_serial_integer();
-  Serial.println ("Enter the MAX distance value (cm)");
   max_cm = read_serial_integer();
 
   if (max_cm <= min_cm) max_cm = min_cm + 2;
   proportion = (max_cm - min_cm) / LCD_LEN;
 
-  delay(5000);
-
-  // Send it to Emissor Arduino
-  Serial.print(String(min_cm) + "\n");
-  Serial.print(String(max_cm) + "\n");
+  lcd.clear();
+  lcd.setCursor ( 0, 0 );
+  lcd.print(min_cm);
+  lcd.setCursor ( 0, 1 );
+  lcd.print(max_cm);
 }
 
 int read_serial_integer(){
@@ -55,22 +54,12 @@ int read_serial_integer(){
 
   while(int_not_finished){
     if (Serial.available()){
-      char car = Serial.read();
-      switch (car)
-      {
-        case '\n': { 
-          // Endchar. User finished the number.
-          if(number > 0) int_not_finished = false;
-        }
-        default: {
-          // User is writing a number. 
-          // Move to the right the current number and append the new one.
-          if ((car >= '0') && (car <= '9')) {
-            number = number * 10 + car - '0';
-          }
-        }
+      String car = Serial.readString();
+      number = car.toInt();
+      if(number > 0) {
+        int_not_finished = false;
       }
-    }
+    } 
   }
 
   return number;
@@ -78,6 +67,7 @@ int read_serial_integer(){
 
 void read_sensor_distance(){
   cm = read_serial_integer();
+  Serial.print("OK");
 }
 
 void print_lcd_distance(){

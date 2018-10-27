@@ -40,14 +40,17 @@ void loop(){
 }
 
 void read_min_max_values(){
-  Serial.println ("Enter the MIN distance value (cm)");
   min_cm = read_serial_integer();
-  
-  Serial.println ("Enter the MAX distance value (cm)");
   max_cm = read_serial_integer();
 
   if (max_cm <= min_cm) max_cm = min_cm + 2;
-  Serial.println(String(min_cm));
+
+  Serial.print("Now, change the mode from USB to XBEE\n");
+  delay(10000);
+
+  //Sending MIN and MAX to Arduino Receiver.
+  Serial.print(String(min_cm) + "\n");
+  Serial.print(String(max_cm) + "\n");
 }
 
 int read_serial_integer(){
@@ -88,6 +91,13 @@ void read_sensor_distance(){
 
 void send_distance(){
   Serial.println(cm);
+
+  boolean received = false;
+  while(!received){
+    if(Serial.available()){
+      if(Serial.readString() == "OK") received = true;
+    }
+  }
 }
 
 void open_led(){  
