@@ -1,4 +1,5 @@
 #include <Wire.h>
+#include <math.h>
 
 #define DEVICE (0x53)    //ADXL345 device address
 #define TO_READ (6)        //num of bytes we are going to read each time (two bytes for each axis)
@@ -22,9 +23,12 @@ byte buff[TO_READ] ; //6 bytes buffer for saving data read from the device
 char str[512]; //string buffer to transform data before sending it to the serial port
 
 // X Y Z default values
-int x = 0, previous_x = 0;
-int y = 0, previous_y = 0;
-int z = 0, previous_z = 0;
+int x = 0;
+int y = 0;
+int z = 0;
+
+float base_pitch = 0;
+float base_roll = -5;
 
 
 void setup()
@@ -78,19 +82,31 @@ void readFrom(int device, byte address, int num, byte buff[]) {
 
 // Get X Y Z values
 void get_coords(){
-  previous_x = x;
-  previous_y = y;
-  previous_z = z;
-  
   x = (((int)buff[1]) << 8) | buff[0];   
-  y = (((int)buff[3])<< 8) | buff[2];
+  y = (((int)buff[3]) << 8) | buff[2];
   z = (((int)buff[5]) << 8) | buff[4];
 }
 
 String get_movement(){
-  if(x > previous_x) return "RIGHT";
-  if(x < previous_x) return "LEFT";
-  if(z > previous_z) return "UP";
-  if(z < previous_z) return "RIGHT";
+
+  //Code from: https://www.dfrobot.com/wiki/index.php/How_to_Use_a_Three-Axis_Accelerometer_for_Tilt_Sensing#Yaw-Pitch-Roll
+  double roll = 0.00, pitch = -5.00;   //Roll & Pitch are the angles which rotate by the axis X and y 
+
+  double x_Buff = float(x);
+  double y_Buff = float(y);
+  double z_Buff = float(z);
+  roll = atan2(y_Buff , z_Buff) * 57.3;
+  pitch = atan2((- x_Buff) , sqrt(y_Buff * y_Buff + z_Buff * z_Buff)) * 57.3;
+
+  if(abs(roll - base_roll) > abs(pitch - base_pitch)){
+     if(roll < base_roll - 5) return "DOWN";
+     if(roll > base_roll + 5) return "UP";
+  }
+  else{
+    if(pitch < base_pitch - 5) return "RIGHT";
+    if(pitch > base_pitch + 5) return "LEFT";
+  }
+  
   return "";
 }
+
