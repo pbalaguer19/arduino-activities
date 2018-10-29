@@ -10,11 +10,7 @@
 
 // LCD 16x2 on I2C 0x27 address
 LiquidCrystal_I2C lcd(0x27, 16, 2);
-
-// X Y Z default values
-int x = 0, previous_x = 0;
-int y = 0, previous_y = 0;
-int z = 0, previous_z = 0;
+String movement;
 
 void setup(){
   Serial.begin(9600);
@@ -34,38 +30,12 @@ void loop(){
 }
 
 void read_accelerometer(){
-  previous_x = x;
-  previous_y = y;
-  previous_z = z;
-  
-  x = read_coord();
-  y = read_coord();
-  z = read_coord();
-}
-
-int read_coord(){
-  if (Serial.available()){
-    String car = Serial.readStringUntil(" ");
-    return car.toInt();
-  }
-  return 0;
+  if (Serial.available()) movement = Serial.readString();
 }
 
 void print_lcd_distance(){
   lcd.clear();
   
   lcd.setCursor ( 0, 0 );
-  lcd.print(String(x) + " " + String(y) + " " + String(z));
-  
-  lcd.setCursor ( 0, 1 );
-  String mvnt = get_movement();
-  lcd.print(mvnt);
-}
-
-String get_movement(){
-  if(x > previous_x) return "RIGHT";
-  if(x < previous_x) return "LEFT";
-  if(z > previous_z) return "UP";
-  if(z < previous_z) return "RIGHT";
-  
+  lcd.print(movement);
 }
