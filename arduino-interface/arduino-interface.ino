@@ -5,12 +5,19 @@
 /*
 * Group Number 4:
 * Group Members: Pau Balaguer, Didac Florensa and Hongzhi Zhu
-* Exercise 2.3.receiver
 */
+
+struct __attribute__ ((packed)) controller {
+  int32_t x;
+  int32_t y;
+  int32_t z;
+  int32_t acc;
+  int32_t hr;
+};
 
 // LCD 16x2 on I2C 0x27 address
 LiquidCrystal_I2C lcd(0x27, 16, 2);
-String movement;
+struct controller movement;
 
 void setup(){
   Serial.begin(9600);
@@ -29,13 +36,16 @@ void loop(){
 }
 
 void read_accelerometer(){
-  if (Serial.available()) movement = Serial.readString();
+  if (Serial.available()){
+    Serial.readBytes((char*)&movement, sizeof(controller));
+  }
 }
 
 void print_lcd_distance(){
   lcd.clear();
   
   lcd.setCursor ( 0, 0 );
-  lcd.print(movement);
-  movement = "";
+  lcd.print(String(movement.x));
+  lcd.setCursor ( 0, 1 );
+  lcd.print("AA");
 }
