@@ -60,9 +60,9 @@ void loop()
   get_coords(); // get the x, y and z coords
   String movement = get_movement(); // Get the movement string
   if(QS) lastBPM = BPM;
-  Serial.println(movement + "-" + lastBPM);
+  Serial.print(movement + "-" + lastBPM + ".");
   
-  delay(20);
+  delay(300);
 }
 
 // Writes val to address register on device
