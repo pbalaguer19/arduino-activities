@@ -13,8 +13,8 @@
 #define gainZ     248.5
 
 /*
-* Group Number 4:
-* Group Members: Pau Balaguer, Didac Florensa and Hongzhi Zhu
+  Group Number 4:
+  Group Members: Pau Balaguer, Didac Florensa and Hongzhi Zhu
 */
 
 
@@ -26,11 +26,9 @@ int x = 0;
 int y = 0;
 int z = 0;
 
-float base_pitch = 0;
-float base_roll = -5;
 
 //HeartRate sensor
-int pulsePin = A0; 
+int pulsePin = A0;
 int blinkPin = 0;
 volatile int BPM;
 volatile boolean QS;
@@ -38,14 +36,16 @@ volatile int Signal;
 volatile int IBI;
 volatile boolean Pulse;
 int lastBPM;
+double roll = 0.00;
+double pitch = -5.00;   //Roll & Pitch are the angles which rotate by the axis X and y
 
 void setup()
 {
   Wire.begin();        // join i2c bus (address optional for master)
   Serial.begin(9600);  // start serial for output
-  
+
   //Turning on the ADXL345
-  writeTo(DEVICE, 0x2D, 0);      
+  writeTo(DEVICE, 0x2D, 0);
   writeTo(DEVICE, 0x2D, 16);
   writeTo(DEVICE, 0x2D, 8);
   interruptSetup();
@@ -54,23 +54,23 @@ void setup()
 void loop()
 {
   int regAddress = 0x32; //first axis-acceleration-data register on the ADXL345
-  
+
   readFrom(DEVICE, regAddress, TO_READ, buff); //read the acceleration data from the ADXL345
 
   get_coords(); // get the x, y and z coords
-  String movement = get_movement(); // Get the movement string
-  if(QS) lastBPM = BPM;
-  Serial.print(movement + "-" + lastBPM + ".");
-  
+  get_movement(); // Get the movement pitch and roll
+  if (QS) lastBPM = BPM;
+  Serial.print(String(pitch) + "-" + String(roll) + "_" + String(lastBPM) + "%");
+
   delay(300);
 }
 
 // Writes val to address register on device
 void writeTo(int device, byte address, byte val) {
-   Wire.beginTransmission(device);
-   Wire.write(address);
-   Wire.write(val);
-   Wire.endTransmission();
+  Wire.beginTransmission(device);
+  Wire.write(address);
+  Wire.write(val);
+  Wire.endTransmission();
 }
 
 // Reads num bytes starting from address register on device in to buff array
@@ -78,12 +78,12 @@ void readFrom(int device, byte address, int num, byte buff[]) {
   Wire.beginTransmission(device);
   Wire.write(address);
   Wire.endTransmission();
-  
+
   Wire.beginTransmission(device);
   Wire.requestFrom(device, num);
-  
+
   int i = 0;
-  while(Wire.available()){ 
+  while (Wire.available()) {
     buff[i] = Wire.read();
     i++;
   }
@@ -91,16 +91,15 @@ void readFrom(int device, byte address, int num, byte buff[]) {
 }
 
 // Get X Y Z values
-void get_coords(){
-  x = (((int)buff[1]) << 8) | buff[0];   
+void get_coords() {
+  x = (((int)buff[1]) << 8) | buff[0];
   y = (((int)buff[3]) << 8) | buff[2];
   z = (((int)buff[5]) << 8) | buff[4];
 }
 
-String get_movement(){
+void get_movement() {
 
   //Code from: https://www.dfrobot.com/wiki/index.php/How_to_Use_a_Three-Axis_Accelerometer_for_Tilt_Sensing#Yaw-Pitch-Roll
-  double roll = 0.00, pitch = -5.00;   //Roll & Pitch are the angles which rotate by the axis X and y 
 
   double x_Buff = float(x);
   double y_Buff = float(y);
@@ -108,14 +107,14 @@ String get_movement(){
   roll = atan2(y_Buff , z_Buff) * 57.3;
   pitch = atan2((- x_Buff) , sqrt(y_Buff * y_Buff + z_Buff * z_Buff)) * 57.3;
 
-  if(abs(roll - base_roll) > abs(pitch - base_pitch)){
-     if(roll < base_roll - 5) return "DOWN";
-     if(roll > base_roll + 5) return "UP";
+  /*if (abs(roll - base_roll) > abs(pitch - base_pitch)) {
+    if (roll < base_roll - 5) return "DOWN";
+    if (roll > base_roll + 5) return "UP";
   }
-  else{
-    if(pitch < base_pitch - 5) return "RIGHT";
-    if(pitch > base_pitch + 5) return "LEFT";
-  }
-  
-  return "";
+  else {
+    if (pitch < base_pitch - 5) return "RIGHT";
+    if (pitch > base_pitch + 5) return "LEFT";
+  }*/
+
+  //return "";
 }
