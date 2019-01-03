@@ -60,7 +60,7 @@ void loop()
   get_coords(); // get the x, y and z coords
   get_movement(); // Get the movement pitch and roll
   if (QS) lastBPM = BPM;
-  Serial.print(String(pitch) + "-" + String(roll) + "_" + String(lastBPM) + "%");
+  Serial.print(String(pitch) + "/" + String(roll) + "_" + String(lastBPM) + "%");
 
   delay(300);
 }

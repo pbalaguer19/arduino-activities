@@ -1,6 +1,7 @@
 #include  <Wire.h>                // I2C access
 #include  <LiquidCrystal_I2C.h>   // LCD library
 #define LCD_LEN 16
+#define SLAVE_ADDRESS 0x04
 
 /*
 * Group Number 4:
@@ -17,6 +18,14 @@ void setup(){
   
   lcd.init();
   lcd.home ();
+
+  pinMode(13, OUTPUT);
+ 
+  // initialize i2c as slave
+  Wire.begin(SLAVE_ADDRESS);
+  
+  // define callbacks for i2c communication
+  Wire.onRequest(send_data_to_raspberry);
 
   delay(500);
 }
@@ -46,11 +55,13 @@ void read_accelerometer(){
     }
   }
 
-  message = info;
+  message = info + "%";
 }
 
 void send_data_to_raspberry(){
-  //send message.
+  char buffer[32];
+  message.toCharArray(buffer, 32);
+  Wire.write(buffer);
 }
 
 // https://stackoverflow.com/questions/9072320/split-string-into-string-array
