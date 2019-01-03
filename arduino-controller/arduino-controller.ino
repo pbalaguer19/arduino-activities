@@ -60,7 +60,7 @@ void loop()
   get_coords(); // get the x, y and z coords
   get_movement(); // Get the movement pitch and roll
   if (QS) lastBPM = BPM;
-  Serial.print(String(pitch) + "/" + String(roll) + "_" + String(lastBPM) + "%");
+  Serial.print(String(pitch) + "/" + String(roll) + " " + String(lastBPM) + "%");
 
   delay(300);
 }
@@ -106,15 +106,4 @@ void get_movement() {
   double z_Buff = float(z);
   roll = atan2(y_Buff , z_Buff) * 57.3;
   pitch = atan2((- x_Buff) , sqrt(y_Buff * y_Buff + z_Buff * z_Buff)) * 57.3;
-
-  /*if (abs(roll - base_roll) > abs(pitch - base_pitch)) {
-    if (roll < base_roll - 5) return "DOWN";
-    if (roll > base_roll + 5) return "UP";
-  }
-  else {
-    if (pitch < base_pitch - 5) return "RIGHT";
-    if (pitch > base_pitch + 5) return "LEFT";
-  }*/
-
-  //return "";
 }
