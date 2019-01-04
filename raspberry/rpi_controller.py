@@ -4,6 +4,19 @@
 import smbus
 import time
 from enum import Enum
+import socket
+from ctypes import *
+import datetime
+
+""" This class defines a C-like struct """
+class timeval(Structure):
+    _fields_ = [("tv_sec", c_long), ("tv_usec", c_long)]
+
+class State(Structure):
+    _fields_ = [("direction", c_uint32),
+                ("acceleration", c_float),
+                ("heartrate", c_float),
+                ("time", timeval)]
 
 class Movement(Enum):
     UP = 0
@@ -18,7 +31,9 @@ bus = smbus.SMBus(1)
 address = 0x04
 
 movement = None
-acceleration = 0
+heartrate = 0
+
+SERVER_ADDR = ('192.168.10.2', 32987)
 
 def readString():
     bytes = []
@@ -30,13 +45,13 @@ def readString():
     return bytes
 
 def process_data(text):
-    global movement, acceleration
+    global movement, heartrate
 
     if text.split("/")[0] is not text:
         pitch = float(text.split("/")[0])
         roll = float(text.split("/")[1].split(" ")[0])
 
-        acceleration = int(text.split(" ")[1])
+        heartrate = int(text.split(" ")[1])
 
 
         if abs(roll - BASE_ROLL) > abs(pitch - BASE_PITCH):
@@ -45,6 +60,18 @@ def process_data(text):
         else:
             if pitch < BASE_PITCH - 5: movement = Movement.RIGHT
             if pitch > BASE_PITCH + 5: rmovement = Movement.LEFT
+
+def TimestampMillisec64():
+    return int((datetime.datetime.utcnow() - datetime.datetime(1970, 1, 1)).total_seconds() * 1000)
+
+def TimestampSec64():
+    return int((datetime.datetime.utcnow() - datetime.datetime(1970, 1, 1)).total_seconds())
+
+def send_data():
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    t = timeval(TimestampSec64(), TimestampMillisec64())
+    state = State(movement.value, 0.0, heartrate, t)
+    sock.sendto(state, SERVER_ADDR)
 
 while True:
 
@@ -59,4 +86,6 @@ while True:
         i += 1
 
     process_data(string)
-    print "Movement: {}  Acc: {}".format(movement, acceleration)
+    print "Movement: {}  Heartrate: {}".format(movement, heartrate)
+    if movement:
+        send_data()
