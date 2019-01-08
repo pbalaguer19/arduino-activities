@@ -34,16 +34,15 @@ void setup(){
 }
 
 void loop(){
-  read_accelerometer();
+  read_bcg();
 
   delay(200);
   
 }
 
-void read_accelerometer(){
+void read_bcg(){
   boolean not_finished = true;
   String info;
-  message = "";
   
   while(not_finished){
     if (Serial.available()){

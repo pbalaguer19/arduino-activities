@@ -59,7 +59,8 @@ def process_data(text):
             if roll > BASE_ROLL + 5: movement = Movement.UP
         else:
             if pitch < BASE_PITCH - 5: movement = Movement.RIGHT
-            if pitch > BASE_PITCH + 5: rmovement = Movement.LEFT
+            if pitch > BASE_PITCH + 5:
+                movement = Movement.LEFT
 
 def TimestampMillisec64():
     return int((datetime.datetime.utcnow() - datetime.datetime(1970, 1, 1)).total_seconds() * 1000)
