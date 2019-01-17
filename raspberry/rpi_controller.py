@@ -7,6 +7,7 @@ from enum import Enum
 import socket
 from ctypes import *
 import datetime
+import I2C_LCD_driver
 
 """ This class defines a C-like struct """
 class timeval(Structure):
@@ -34,6 +35,7 @@ movement = None
 heartrate = 0
 
 SERVER_ADDR = ('192.168.10.2', 32987)
+LCD = I2C_LCD_driver.lcd()
 
 def readString():
     bytes = []
@@ -74,6 +76,19 @@ def send_data():
     state = State(movement.value, 0.0, heartrate, t)
     sock.sendto(state, SERVER_ADDR)
 
+
+def print_lcd():
+    LCD.lcd_clear()
+
+    m = ""
+    if movement == Movement.UP: m = "UP"
+    if movement == Movement.DOWN: m = "DOWN"
+    if movement == Movement.RIGHT: m = "RIGHT"
+    if movement == Movement.LEFT: m = "LEFT"
+
+    LCD.lcd_display_string("M: {}".format(m), 1)
+    LCD.lcd_display_string("HR: {}".format(heartrate), 2)
+
 while True:
 
     time.sleep(0.3)
@@ -88,5 +103,6 @@ while True:
 
     process_data(string)
     print "Movement: {}  Heartrate: {}".format(movement, heartrate)
+    print_lcd()
     if movement:
         send_data()

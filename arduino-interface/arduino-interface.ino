@@ -18,15 +18,15 @@ String message;
 
 void setup(){
   Serial.begin(9600);
-  
+
   lcd.init();
   lcd.home ();
 
   pinMode(13, OUTPUT);
- 
+
   // initialize i2c as slave
   Wire.begin(SLAVE_ADDRESS);
-  
+
   // define callbacks for i2c communication
   Wire.onRequest(send_data_to_raspberry);
 
@@ -37,13 +37,13 @@ void loop(){
   read_bcg();
 
   delay(200);
-  
+
 }
 
 void read_bcg(){
   boolean not_finished = true;
   String info;
-  
+
   while(not_finished){
     if (Serial.available()){
       char car = Serial.read();
@@ -55,33 +55,14 @@ void read_bcg(){
       }
     }
   }
-  print_lcd(info);
   message = info + "%";
 }
 
 void send_data_to_raspberry(){
   char buffer[32];
   message.toCharArray(buffer, 32);
-  Wire.write(buffer); 
-  
-}
+  Wire.write(buffer);
 
-void print_lcd(String message){
-  double pitch = getValue(message, '/', 0).toDouble();
-  double roll = getValueBetween(message, '/', ' ').toDouble();  
-  String movement = getMovement(pitch, roll);
-  
-  int acceleration = getValue(message ,' ',1).toInt();
-
-  lcd.clear();
-
-  lcd.setCursor ( 0, 0 );
-  lcd.print("M: " + movement);
-
-  lcd.setCursor ( 0, 1 );
-  lcd.print("Acc: " + String(acceleration));
-
-  Serial.println(movement + " " + String(acceleration));
 }
 
 // https://stackoverflow.com/questions/9072320/split-string-into-string-array
