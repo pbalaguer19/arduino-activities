@@ -1,8 +1,6 @@
 #include <iostream>
 #include "ctime"
 
-#define DURATION 200
-
 #define MOVE 1
 #define QUIET 2
 
@@ -10,6 +8,8 @@
 #define PLAYER_RADIUS 8
 #define FOOD_RADIUS 3
 #define GHOST_RADIUS 5
+
+#define ALPHABETA 1
 
 class PacManTextures{
 private:
@@ -24,6 +24,8 @@ private:
   particle *ghosts;
   GLenum *ghostLights;
 
+  float *weights;
+
   int COLUMNS;
   int ROWS;
   float WIDTH;
@@ -36,10 +38,23 @@ private:
 
   int GHOSTS;
 
+  float EPSILON=5;
+  float DISCOUNT=1;
+  float ALPHA=0.2;
+  int DURATION=200;
+
+  int DEPTH=2;
+  int FOOD_NUMBER;
+
   void definePlayerPosition(){
     ghostsXPos = new int[GHOSTS];
     ghostsYPos = new int[GHOSTS];
     ghosts = new particle[GHOSTS];
+    weights = new float[4];
+    weights[0] = 1;
+    weights[1] = 1;
+    weights[2] = 1;
+    weights[3] = 1;
 
     for(playerXPos = 1; playerXPos < COLUMNS; playerXPos++){
       for(playerYPos = 1; playerYPos < ROWS; playerYPos++){
@@ -105,22 +120,236 @@ private:
         int ni, nj;
         ParticleDirection direction;
 
-        do{
-          pos = rand() % 4;
-          ni = ghostsXPos[i] + direct[pos][0];
-          nj = ghostsYPos[i] + direct[pos][1];
-          direction = getParticleDirection(direct[pos][2]);
-        }while(map[nj][ni].getCellType() == WALL);
+        if((rand() % 100) <= EPSILON){
+          // RANDOM CHOICE
+          do{
+            pos = rand() % 4;
+            ni = ghostsXPos[i] + direct[pos][0];
+            nj = ghostsYPos[i] + direct[pos][1];
+            direction = getParticleDirection(direct[pos][2]);
+          }while(map[nj][ni].getCellType() == WALL);
+        }else{
+          if(ALPHABETA) pos = alphaBeta(i);
+          else pos = getBestMovement(i);
+        }
+
+        ni = ghostsXPos[i] + direct[pos][0];
+        nj = ghostsYPos[i] + direct[pos][1];
+        direction = getParticleDirection(direct[pos][2]);
 
         CellType cellType = map[ghostsYPos[i]][ghostsXPos[i]].getPreviousCellType();
+
+        if(map[nj][ni].getCellType() == PLAYER){
+          std::cout << "GAME OVER!" << '\n';
+          exit(0);
+        }
+
+
+        //reward = actual_player_distance - old_player_distance
+        int reward;
+        if ((abs(ghostsXPos[i] - playerXPos) + abs(ghostsYPos[i] - playerYPos)) > (abs(ni - playerXPos) + abs(nj - playerYPos))) reward = 1;
+        else reward = 0;
+
+        if(map[nj][ni].getCellType() == PLAYER) reward = 200000;
+        if(!ALPHABETA) updateWeights(ni, nj, reward);
+
         map[nj][ni].setCellType(GHOST);
         map[ghostsYPos[i]][ghostsXPos[i]].setCellType(cellType);
         ghostsXPos[i] = ni;
         ghostsYPos[i] = nj;
+
         ghosts[i].init_movement(getPosition(ni, PIXELS_PER_COLUMN), getPosition(nj, PIXELS_PER_ROW), DURATION, direction, lights[i]);
       }
 
       ghosts[i].integrate(t);
+    }
+  }
+
+  int alphaBeta(int i){
+    int direct[][3] = {{0,1,0}, {0,-1, 1}, {-1,0,3}, {1,0,2}};
+    int v = INT_MAX;
+    int bestAction;
+
+    for(int pos=0; pos < 4; pos ++){
+      int ni = ghostsXPos[i] + direct[pos][0];
+      int nj = ghostsYPos[i] + direct[pos][1];
+      if(map[nj][ni].getCellType() != WALL){
+        int u = minValue(ni, nj, 1, DEPTH, INT_MIN, INT_MAX);
+
+        if(u < v){
+          bestAction = pos;
+          v = u;
+        }
+      }
+    }
+
+    return bestAction;
+  }
+
+  int maxValue(int ni, int nj, int i, int depth, int alpha, int beta){
+    int direct[][3] = {{0,1,0}, {0,-1, 1}, {-1,0,3}, {1,0,2}};
+
+    if(terminalTest(ni, nj, depth)) return utility(ni, nj);
+
+    int v = INT_MIN;
+    for(int pos=0; pos < 4; pos ++){
+      int neighI = ni + direct[pos][0];
+      int neighJ = nj + direct[pos][1];
+      if(!((ROWS <= neighJ) || (COLUMNS <= neighI))){
+        v = fmax(v, minValue(neighI, neighJ, 1, depth, alpha, beta));
+
+        if(v > beta && v != INT_MAX) return v;
+
+        alpha = fmax(alpha, v);
+      }
+    }
+
+    return v;
+  }
+
+  int minValue(int ni, int nj, int i, int depth, int alpha, int beta){
+    int direct[][3] = {{0,1,0}, {0,-1, 1}, {-1,0,3}, {1,0,2}};
+
+    if(terminalTest(ni, nj, depth)) return utility(ni, nj);
+
+    int v = INT_MAX;
+    for(int pos=0; pos < 4; pos ++){
+      int neighI = ni + direct[pos][0];
+      int neighJ = nj + direct[pos][1];
+      if(!((ROWS <= neighJ) || (COLUMNS <= neighI))){
+        if(i == GHOSTS){
+          v = fmin(v, maxValue(neighI, neighJ, 0, depth-1, alpha, beta));
+        }
+        else
+          v = fmin(v, minValue(neighI, neighJ, i+1, depth, alpha, beta));
+
+        if(v < alpha && abs(v) != INT_MAX) return v;
+        beta = fmin(beta, v);
+      }
+    }
+
+    return v;
+  }
+
+  bool terminalTest(int ni, int nj, int depth){
+    return (ROWS <= nj) || (COLUMNS <= ni) || (FOOD_NUMBER == 0) || (map[nj][ni].getCellType() == PLAYER) || (depth == 0) ;
+  }
+
+  int utility(int ni, int nj){
+    if(map[nj][ni].getCellType() == JAIL) return 100;
+    return abs((playerXPos - ni) + abs(playerYPos - nj));
+
+  }
+
+  int getBestMovement(int i){
+    int direct[][3] = {{0,1,0}, {0,-1, 1}, {-1,0,3}, {1,0,2}};
+    int bestMovement = 0;
+    int bestQValue = INT_MIN;
+    int pos, ni, nj;
+
+    for(pos=0; pos < 4; pos ++){
+        ni = ghostsXPos[i] + direct[pos][0];
+        nj = ghostsYPos[i] + direct[pos][1];
+        if(map[nj][ni].getCellType() != WALL){
+          int qvalue = getQValue(ni, nj);
+          if(qvalue > bestQValue){
+            bestQValue = qvalue;
+            bestMovement = pos;
+          }
+        }
+    }
+    if(bestQValue == INT_MIN){
+      do{
+        pos = rand() % 4;
+        ni = ghostsXPos[i] + direct[pos][0];
+        nj = ghostsYPos[i] + direct[pos][1];
+      }while(map[nj][ni].getCellType() == WALL);
+      bestMovement = pos;
+    }
+
+    return bestMovement;
+  }
+
+  int getQValue(int ni, int nj){
+    int direct[][3] = {{0,1,0}, {0,-1, 1}, {-1,0,3}, {1,0,2}};
+    int features[] = {0, 0, 0, 0}; // {ghosts neighbour, pacman distance, food neighbour, is in jail}
+
+    for(int pos=0; pos < 4; pos ++){
+      int neighI = ni + direct[pos][0];
+      int neighJ = nj + direct[pos][1];
+
+      if(map[neighJ][neighI].getCellType() == GHOST){
+        features[0] += 1;
+      }
+      if(map[neighJ][neighI].getCellType() == FOOD){
+        features[2] += 1;
+      }
+    }
+
+    if(map[ni][nj].getCellType() == JAIL){
+      features[3] = -1;
+    }else{
+      features[3] = 1;
+    }
+    features[1] = abs(abs(playerXPos - ni) + abs(playerYPos - nj));
+
+    // std::cout << weights[0] << ' ';
+    // std::cout << weights[1] << ' ';
+    // std::cout << weights[2] << ' ';
+    // std::cout << weights[3] << '\n';
+
+    int val = 0;
+    for(int i=0; i<3; i++){
+      val += (weights[i] * features[i]);
+    }
+
+    return val;
+  }
+
+  void updateWeights(int newX, int newY, int reward){
+    int direct[][3] = {{0,1,0}, {0,-1, 1}, {-1,0,3}, {1,0,2}};
+    int bestMovement = 0;
+    int bestQValue = INT_MIN;
+
+    for(int pos=0; pos < 4; pos ++){
+        int ni = newX + direct[pos][0];
+        int nj = newY + direct[pos][1];
+        if(map[nj][ni].getCellType() != WALL){
+          int qvalue = getQValue(ni, nj);
+          if(qvalue > bestQValue){
+            bestQValue = qvalue;
+            bestMovement = pos;
+          }
+        }
+    }
+
+    // Calculate actual position features
+    int features[] = {0, 0, 0, 0}; // {ghosts neighbour, pacman distance, food neighbour, is in jail}
+
+    for(int pos=0; pos < 4; pos ++){
+      int neighI = newX + direct[pos][0];
+      int neighJ = newY + direct[pos][1];
+
+      if(map[neighJ][neighI].getCellType() == GHOST){
+        features[0] += 1;
+      }
+      if(map[neighJ][neighI].getCellType() == FOOD){
+        features[2] += 1;
+      }
+    }
+
+    if(map[newY][newX].getCellType() == JAIL){
+      features[3] = -1;
+    }else{
+      features[3] = 1;
+    }
+
+    features[1] = abs(abs(playerXPos - newX) + abs(playerYPos - newY));
+
+    int difference = reward + (DISCOUNT * bestQValue) - getQValue(newX, newY);
+
+    for(int i=0; i<4; i++){
+      weights[i] = weights[i] + ALPHA * difference * features[i];
     }
   }
 
@@ -171,6 +400,10 @@ public:
     defineGhostsPositions();
 
     player.set_position(getPosition(playerXPos, PIXELS_PER_COLUMN), getPosition(playerYPos, PIXELS_PER_ROW));
+  }
+
+  void resetFood(){
+    FOOD_NUMBER = 0;
   }
 
   void drawCorridor(int i, int j){
@@ -233,8 +466,17 @@ public:
   void drawFood(int i, int j) {
     float x, y;
     Cell cell = map[j][i];
+
     if(cell.getCellType() == FOOD){
       drawSphere(FOOD_RADIUS, i, j, 1.0, 0, 0.0);
+      FOOD_NUMBER += 1;
+    }
+  }
+
+  void checkWin(){
+    if(FOOD_NUMBER == 0){
+      std::cout << "WIN!" << '\n';
+      exit(0);
     }
   }
 
@@ -270,8 +512,11 @@ public:
     setPlayerPosition(playerXPos+1, playerYPos, RIGHTDIR);
   }
 
-  void integrate(long t){
+  void integrate(long t, bool isNervous){
     player.integrate(t);
     setGhostsPositions(t);
+
+    if(isNervous) DURATION = 400;
+    else DURATION = 200;
   }
 };

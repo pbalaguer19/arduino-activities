@@ -17,7 +17,7 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 String message;
 
 void setup(){
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   lcd.init();
   lcd.home ();

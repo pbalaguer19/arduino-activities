@@ -71,8 +71,8 @@ void ReadJPEG(char *filename,unsigned char **image,int *width, int *height);
 void LoadTexture(char *filename,int dim);
 void drawTexture();
 void open_connection();
-void listen_clients();
-void process_data(state *s);
+bool listen_clients();
+bool process_data(state *s);
 
 //-----------------------------------------------
 
@@ -179,6 +179,8 @@ void displayMap(){
   glLightfv(GL_LIGHT0,GL_SPECULAR,color);
   //-- End ambient
 
+  pacManTextures->resetFood();
+
   for(i=0; i<COLUMNS; i++) {
     for(j=0; j<ROWS; j++){
       pacManTextures->drawCorridor(i, j);
@@ -188,6 +190,7 @@ void displayMap(){
 
   pacManTextures->drawGhosts();
   pacManTextures->drawPlayer();
+  pacManTextures->checkWin();
 
 
   // Floor
@@ -252,12 +255,12 @@ void idle(){
     last_t = t;
   }
   else{
-      pacManTextures->integrate(t-last_t);
+      bool isNervous = listen_clients();
+      //bool isNervous = rand() % 2 == 0;
+      pacManTextures->integrate(t-last_t, isNervous);
       last_t = t;
     }
   glutPostRedisplay();
-
-  listen_clients();
 }
 
 void PositionObserver(float alpha,float beta,int radi)
@@ -412,19 +415,21 @@ void open_connection(){
   }
 }
 
-void listen_clients(){
+bool listen_clients(){
   int n;
   socklen_t len;
   n = recvfrom(sockfd, (char *)buffer, MAXLINE,
         MSG_WAITALL, ( struct sockaddr *) &cliaddr,
         &len);
   state *s = (state*) buffer;
-  process_data(s);
+  return process_data(s);
 }
 
-void process_data(state *s){
+bool process_data(state *s){
   if(s->dir == 0) pacManTextures->playerUP();
   if(s->dir == 1) pacManTextures->playerDOWN();
   if(s->dir == 2) pacManTextures->playerRIGHT();
   if(s->dir == 3) pacManTextures->playerLEFT();
+
+  return s->heartrate > 100;
 }
